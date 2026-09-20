@@ -28,7 +28,21 @@
     .box input { border: 1px solid #cbd5e1; border-radius: 6px; padding: 7px 12px; font-size: 13px; width: 75%; outline: none; font-family: inherit; }
     .box input:focus { border-color: var(--primary); }
 
-    /* 슬라이드 형식 선택 카드 (3열) */
+    /* 0단계: 작성 언어 선택 버튼 */
+    .lang-section { margin-bottom: 20px; }
+    .lang-label { font-size: 14px; font-weight: 700; color: #0f172a; margin-bottom: 8px; }
+    .lang-grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 10px; }
+    .lang-btn {
+      border: 2px solid #e2e8f0; border-radius: 8px; padding: 11px 14px; cursor: pointer;
+      display: flex; align-items: center; justify-content: center; gap: 8px;
+      background: #fff; font-size: 14px; font-weight: 600; color: #334155; transition: all 0.2s ease;
+      font-family: inherit; outline: none;
+    }
+    .lang-btn:hover { border-color: #93c5fd; }
+    .lang-btn.active { border-color: var(--primary); background: #eff6ff; color: var(--primary); box-shadow: 0 0 0 1px var(--primary); }
+    .lang-flag { font-size: 18px; line-height: 1; }
+
+    /* 1단계: 슬라이드 형식 선택 카드 (3열) */
     .format-section { margin-bottom: 20px; }
     .format-label { font-size: 14px; font-weight: 700; color: #0f172a; margin-bottom: 8px; }
     .format-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(260px, 1fr)); gap: 12px; }
@@ -69,13 +83,32 @@
 <body>
   <div class="container">
     <h1>AI 원페이지 파워포인트 슬라이드 생성기</h1>
-    <p class="sub">크롬 브라우저에서 바로 실행되며, Meiryo UI 폰트 기반의 고품질 PPTX 파일을 자동 생성합니다.</p>
+    <p class="sub">크롬 브라우저에서 바로 실행되며, 다국어(일본어/영어/한국어) 및 Meiryo UI 폰트 기반의 PPTX 파일을 자동 생성합니다.</p>
 
     <!-- Gemini API Key -->
     <div class="top-bar">
       <div class="box">
         <span>🔑 Gemini API Key:</span>
         <input type="password" id="api-key" placeholder="Google AI Studio에서 발급받은 Gemini API 키 입력" onchange="saveKey(this.value)">
+      </div>
+    </div>
+
+    <!-- 0단계: 작성 언어 선택 (일본어 디폴트) -->
+    <div class="lang-section">
+      <div class="lang-label">0단계: PPT 작성 언어 선택</div>
+      <div class="lang-grid">
+        <button type="button" class="lang-btn active" id="lang-ja" onclick="selectLanguage('ja')">
+          <span class="lang-flag">🇯🇵</span>
+          <span class="lang-name">일본어 (기본)</span>
+        </button>
+        <button type="button" class="lang-btn" id="lang-en" onclick="selectLanguage('en')">
+          <span class="lang-flag">🇺🇸</span>
+          <span class="lang-name">영어</span>
+        </button>
+        <button type="button" class="lang-btn" id="lang-ko" onclick="selectLanguage('ko')">
+          <span class="lang-flag">🇰🇷</span>
+          <span class="lang-name">한국어</span>
+        </button>
       </div>
     </div>
 
@@ -108,7 +141,7 @@
     </div>
 
     <div class="info-bar" id="info-bar">
-      📌 <b>디자인 규격 (16:9 와이드, 폰트: Meiryo UI):</b> 슬라이드 제목(24pt) ➡️ ■ 핵심 1줄 요약문(16pt) ➡️ <b>프러시안 블루 표 (헤더·본문 14pt 고정)</b>
+      📌 <b>디자인 규격 (16:9 와이드, 폰트: Meiryo UI, 언어: 일본어):</b> 슬라이드 제목(24pt) ➡️ ■ 핵심 1줄 요약문(16pt) ➡️ <b>프러시안 블루 표 (헤더·본문 14pt 고정)</b>
     </div>
 
     <!-- 2단계: 내용 입력 -->
@@ -138,7 +171,36 @@
 
   <script>
     const FONT_FAMILY = "Meiryo UI";
+    let currentLanguage = 'ja'; // 디폴트: 일본어
     let currentFormat = 'table';
+
+    // 언어별 설정 (프롬프트 톤앤매너 및 안내 문구)
+    const LANG_CONFIG = {
+      ja: {
+        name: "일본어",
+        expertDesc: "일본 비즈니스 기획서 및 파워포인트 원페이지 보고서 작성 전문가",
+        headerExample: "| 項目 | 現状・課題 | 推進施策 | 期待効果・KPI |",
+        toneRule: "모든 텍스트는 비즈니스 일본어 '체언지(体言止め, 명사형 종결)'로 군더더기 없이 간결하게 작성하세요.",
+        secExamples: ["### 1. 現状・課題", "### 2. 推進施策", "### 3. 期待効果・KPI"],
+        defaultTitle: "タイトル"
+      },
+      en: {
+        name: "영어",
+        expertDesc: "Global Business Presentation & Executive Summary Specialist",
+        headerExample: "| Category | Current Status & Issues | Strategic Initiatives | Expected Impact & KPI |",
+        toneRule: "Write all text in concise business English using noun phrases or action-oriented gerunds.",
+        secExamples: ["### 1. Current Challenges", "### 2. Key Initiatives", "### 3. Expected Outcomes"],
+        defaultTitle: "Slide Title"
+      },
+      ko: {
+        name: "한국어",
+        expertDesc: "국내 비즈니스 기획서 및 임원 보고용 원페이지 슬라이드 작성 전문가",
+        headerExample: "| 구분 | 현황 및 과제 | 추진 과제 | 기대 효과 및 KPI |",
+        toneRule: "모든 텍스트는 간결한 비즈니스 개조식(명사형 종결)으로 군더더기 없이 작성하세요.",
+        secExamples: ["### 1. 현황 및 과제", "### 2. 주요 실행 과제", "### 3. 기대 효과 및 목표"],
+        defaultTitle: "슬라이드 제목"
+      }
+    };
 
     window.addEventListener('DOMContentLoaded', () => {
       const savedKey = localStorage.getItem('gemini_api_key');
@@ -149,24 +211,36 @@
       localStorage.setItem('gemini_api_key', val.trim());
     }
 
+    function selectLanguage(lang) {
+      currentLanguage = lang;
+      document.getElementById('lang-ja').classList.toggle('active', lang === 'ja');
+      document.getElementById('lang-en').classList.toggle('active', lang === 'en');
+      document.getElementById('lang-ko').classList.toggle('active', lang === 'ko');
+      updateInfoBar();
+    }
+
     function selectFormat(fmt) {
       currentFormat = fmt;
       document.getElementById('card-table').classList.toggle('active', fmt === 'table');
       document.getElementById('card-content-image-50').classList.toggle('active', fmt === 'content_image_50');
       document.getElementById('card-content-image-30').classList.toggle('active', fmt === 'content_image_30');
+      updateInfoBar();
+    }
 
+    function updateInfoBar() {
       const infoBar = document.getElementById('info-bar');
       const hint = document.getElementById('result-hint');
+      const langName = LANG_CONFIG[currentLanguage].name;
 
-      if (fmt === 'table') {
-        infoBar.innerHTML = '📌 <b>디자인 규격 (16:9 와이드, Meiryo UI):</b> 슬라이드 제목(24pt) ➡️ ■ 핵심 1줄 요약문(16pt) ➡️ <b>프러시안 블루 표 (헤더·본문 14pt 고정)</b>';
-        hint.innerText = "💡 제목 아래 '■ 1줄 요약'과 표 내용 확인";
-      } else if (fmt === 'content_image_50') {
-        infoBar.innerHTML = '📌 <b>디자인 규격 (16:9 와이드, Meiryo UI):</b> 슬라이드 제목(24pt) ➡️ ■ 핵심 1줄 요약문(16pt) ➡️ <b>좌측: 내용 정리(50%) / 우측: 그림 영역(50%)</b>';
-        hint.innerText = "💡 제목 아래 '■ 1줄 요약'과 좌측 텍스트 항목 확인 (우측 50%는 그림 영역)";
+      if (currentFormat === 'table') {
+        infoBar.innerHTML = `📌 <b>디자인 규격 (16:9 와이드, Meiryo UI, 작성 언어: ${langName}):</b> 슬라이드 제목(24pt) ➡️ ■ 핵심 1줄 요약문(16pt) ➡️ <b>프러시안 블루 표 (헤더·본문 14pt 고정)</b>`;
+        hint.innerText = `💡 제목 아래 '■ 1줄 요약'과 ${langName} 표 내용 확인`;
+      } else if (currentFormat === 'content_image_50') {
+        infoBar.innerHTML = `📌 <b>디자인 규격 (16:9 와이드, Meiryo UI, 작성 언어: ${langName}):</b> 슬라이드 제목(24pt) ➡️ ■ 핵심 1줄 요약문(16pt) ➡️ <b>좌측: 내용 정리(50%) / 우측: 그림 영역(50%)</b>`;
+        hint.innerText = `💡 제목 아래 '■ 1줄 요약'과 좌측 ${langName} 텍스트 항목 확인 (우측 50%는 그림 영역)`;
       } else {
-        infoBar.innerHTML = '📌 <b>디자인 규격 (16:9 와이드, Meiryo UI):</b> 슬라이드 제목(24pt) ➡️ ■ 핵심 1줄 요약문(16pt) ➡️ <b>상측: 핵심내용 요약(30%) / 하측: 대형 그림 영역(70%)</b>';
-        hint.innerText = "💡 제목 아래 '■ 1줄 요약'과 상측 핵심 텍스트 확인 (하측 70%는 대형 다이어그램 영역)";
+        infoBar.innerHTML = `📌 <b>디자인 규격 (16:9 와이드, Meiryo UI, 작성 언어: ${langName}):</b> 슬라이드 제목(24pt) ➡️ ■ 핵심 1줄 요약문(16pt) ➡️ <b>상측: 핵심내용 요약(30%) / 하측: 대형 그림 영역(70%)</b>`;
+        hint.innerText = `💡 제목 아래 '■ 1줄 요약'과 상측 ${langName} 핵심 텍스트 확인 (하측 70%는 대형 다이어그램 영역)`;
       }
     }
 
@@ -227,25 +301,27 @@
       }
 
       btn.disabled = true;
-      btn.innerText = 'AI가 핵심 요약 및 구조화 중...';
+      btn.innerText = `AI가 ${LANG_CONFIG[currentLanguage].name} 요약 및 구조화 중...`;
       status.style.display = 'none';
 
+      const cfg = LANG_CONFIG[currentLanguage];
       let prompt = '';
+
       if (currentFormat === 'table') {
-        prompt = `당신은 일본 비즈니스 기획서 및 파워포인트 원페이지 보고서 작성 전문가입니다.
-입력된 한국어 내용을 분석하여, '단 1장의 슬라이드에 들어갈 핵심 1줄 요약문과 간결한 표(Table)' 형태로 구조화하여 일본어로 번역하세요.
+        prompt = `당신은 ${cfg.expertDesc}입니다.
+입력된 내용을 분석하여, '단 1장의 슬라이드에 들어갈 핵심 1줄 요약문과 간결한 표(Table)' 형태로 구조화하여 ${cfg.targetLang}로 작성하세요.
 
 [필수 작성 규칙]
 1. 1행에는 슬라이드의 메인 타이틀을 '# 슬라이드 제목' 형식으로 작성하세요.
 2. 2행에는 장표 전체를 관통하는 '핵심 내용 1줄 요약문(결론/리드문)'을 반드시 '■ 요약문' 형식으로 작성하세요.
 3. 그 아래에 반드시 마크다운 표(Table) 형식으로 핵심 내용을 3~4개 열, 3~5개 행으로 작성하세요.
-   - 표 헤더 예시: | 項目 | 現状・課題 | 推進施策 | 期待効果・KPI |
+   - 표 헤더 예시: ${cfg.headerExample}
 4. 표 내부의 내용 항목에는 글머리 기호(▲, ▼, ●, •, -, * 등)를 절대로 붙이지 마세요!
-5. 표 내부의 모든 텍스트는 반드시 비즈니스 '체언지(体言止め, 명사형 종결)'로 작성하세요.
+5. ${cfg.toneRule}
 6. '**' (볼드 기호) 또는 '<br>' (HTML 태그) 같은 기호는 사용하지 마세요.
 7. 마크다운 내용 외의 다른 인사말이나 잡담은 일절 출력하지 마세요.
 
-[입력된 한국어 내용]
+[입력 내용]
 ${koText}`;
       } else {
         const is30 = (currentFormat === 'content_image_30');
@@ -253,31 +329,31 @@ ${koText}`;
           ? "(슬라이드 상측 30% 영역에는 가로로 배치될 핵심 요점 2~3개 섹션을 컴팩트하게 작성하고, 하측 70%는 대형 다이어그램/그림용으로 비워둡니다.)"
           : "(슬라이드 우측 50%는 그림/도표 삽입용으로 비워두며, 좌측 50%에 2~3개 섹션을 작성하세요.)";
 
-        prompt = `당신은 일본 비즈니스 기획서 및 파워포인트 원페이지 보고서 작성 전문가입니다.
-입력된 한국어 내용을 분석하여, '단 1장의 슬라이드 핵심 내용' 형태로 구조화하여 일본어로 번역하세요.
+        prompt = `당신은 ${cfg.expertDesc}입니다.
+입력된 내용을 분석하여, '단 1장의 슬라이드 핵심 내용' 형태로 구조화하여 ${cfg.targetLang}로 작성하세요.
 ${guideText}
 
 [필수 작성 규칙]
 1. 1행에는 슬라이드의 메인 타이틀을 '# 슬라이드 제목' 형식으로 작성하세요.
 2. 2행에는 장표 전체를 관통하는 '핵심 내용 1줄 요약문(결론/리드문)'을 반드시 '■ 요약문' 형식으로 작성하세요.
 3. 3행부터는 표(Table)를 만들지 말고, 핵심 항목(섹션)을 아래 형식으로 작성하세요:
-   ### 1. 현황 및 과제 (또는 일본어 명칭)
-   - 세부 내용 항목 1 (체언지, 간결하게)
-   - 세부 내용 항목 2 (체언지, 간결하게)
-
-   ### 2. 주요 실행 과제
+   ${cfg.secExamples[0]}
    - 세부 내용 항목 1
    - 세부 내용 항목 2
 
-   ### 3. 기대 효과 및 목표
+   ${cfg.secExamples[1]}
    - 세부 내용 항목 1
    - 세부 내용 항목 2
-4. 모든 문장은 비즈니스 일본어 '체언지(体言止め, 명사형 종결)'로 군더더기 없이 간결하게 작성하세요.
+
+   ${cfg.secExamples[2]}
+   - 세부 내용 항목 1
+   - 세부 내용 항목 2
+4. ${cfg.toneRule}
 5. 표(| ... |)는 절대로 출력하지 마세요.
 6. '**' (볼드 기호) 또는 '<br>' (HTML 태그) 같은 기호는 사용하지 마세요.
 7. 마크다운 내용 외의 다른 인사말이나 잡담은 일절 출력하지 마세요.
 
-[입력된 한국어 내용]
+[입력 내용]
 ${koText}`;
       }
 
@@ -301,7 +377,7 @@ ${koText}`;
     // 1) 표 형식 파싱
     function parseTableContent(text) {
       const lines = text.split('\n').map(l => cleanText(l)).filter(l => l);
-      let title = "タイトル";
+      let title = LANG_CONFIG[currentLanguage].defaultTitle;
       let summary = "";
       let tableRows = [];
 
@@ -324,7 +400,7 @@ ${koText}`;
     // 2, 3) 내용+그림 형식 파싱
     function parseContentImage(text) {
       const lines = text.split('\n').map(l => cleanText(l)).filter(l => l);
-      let title = "タイトル";
+      let title = LANG_CONFIG[currentLanguage].defaultTitle;
       let summary = "";
       let sections = [];
       let currentSec = null;
@@ -432,7 +508,7 @@ ${koText}`;
             });
           }
 
-          await pres.writeFile({ fileName: 'presentation_table.pptx' });
+          await pres.writeFile({ fileName: `presentation_table_${currentLanguage}.pptx` });
 
         } else if (currentFormat === 'content_image_30') {
           // 3) 상하 30:70 형식 (상측 핵심내용 요약 30% / 하측 대형 그림 영역 70%)
@@ -456,7 +532,6 @@ ${koText}`;
           }
 
           // 3. 상측 내용 영역 (30% 면적: y=1.85, h=1.45, 전체 너비 11.733)
-          // 섹션이 여러 개일 경우 가로 컬럼으로 균등 배치하여 시각적 가독성 극대화
           const secCount = Math.max(sections.length, 1);
           const totalW = 11.733;
           const colGap = secCount > 1 ? 0.35 : 0;
@@ -499,7 +574,7 @@ ${koText}`;
             align: 'center', valign: 'middle'
           });
 
-          await pres.writeFile({ fileName: 'presentation_content_top_image_bottom_30_70.pptx' });
+          await pres.writeFile({ fileName: `presentation_content_top_image_bottom_30_70_${currentLanguage}.pptx` });
 
         } else {
           // 2) 좌우 50:50 형식 (좌측 내용 50% / 우측 그림 50%)
@@ -560,7 +635,7 @@ ${koText}`;
             align: 'center', valign: 'middle'
           });
 
-          await pres.writeFile({ fileName: 'presentation_content_image_50_50.pptx' });
+          await pres.writeFile({ fileName: `presentation_content_image_50_50_${currentLanguage}.pptx` });
         }
 
         btn.disabled = false;

@@ -26,6 +26,33 @@ COLOR_TEXT_DARK = RGBColor(30, 41, 59)       # 본문 텍스트 (#1e293b)
 COLOR_MUTED = RGBColor(148, 163, 184)        # 회색 안내 문구 (#94a3b8)
 COLOR_BORDER_LIGHT = RGBColor(203, 213, 225) # 연한 테두리 (#cbd5e1)
 
+LANG_CONFIG = {
+    'ja': {
+        'name': '일본어',
+        'expertDesc': '일본 비즈니스 기획서 및 파워포인트 원페이지 보고서 작성 전문가',
+        'headerExample': '| 項目 | 現状・課題 | 推進施策 | 期待効果・KPI |',
+        'toneRule': "모든 텍스트는 비즈니스 일본어 '체언지(体言止め, 명사형 종결)'로 군더더기 없이 간결하게 작성하세요.",
+        'secExamples': ['### 1. 現状・課題', '### 2. 推進施策', '### 3. 期待効果・KPI'],
+        'defaultTitle': 'タイトル'
+    },
+    'en': {
+        'name': '영어',
+        'expertDesc': 'Global Business Presentation & Executive Summary Specialist',
+        'headerExample': '| Category | Current Status & Issues | Strategic Initiatives | Expected Impact & KPI |',
+        'toneRule': 'Write all text in concise business English using noun phrases or action-oriented gerunds.',
+        'secExamples': ['### 1. Current Challenges', '### 2. Key Initiatives', '### 3. Expected Outcomes'],
+        'defaultTitle': 'Slide Title'
+    },
+    'ko': {
+        'name': '한국어',
+        'expertDesc': '국내 비즈니스 기획서 및 임원 보고용 원페이지 슬라이드 작성 전문가',
+        'headerExample': '| 구분 | 현황 및 과제 | 추진 과제 | 기대 효과 및 KPI |',
+        'toneRule': '모든 텍스트는 간결한 비즈니스 개조식(명사형 종결)으로 군더더기 없이 작성하세요.',
+        'secExamples': ['### 1. 현황 및 과제', '### 2. 주요 실행 과제', '### 3. 기대 효과 및 목표'],
+        'defaultTitle': '슬라이드 제목'
+    }
+}
+
 def ensure_default_template():
     if not os.path.exists(TEMPLATE_FILE):
         prs = Presentation()
@@ -51,59 +78,60 @@ def clean_text(text):
     text = re.sub(r'\*(.*?)\*', r'\1', text)
     return text.replace('`', '').strip()
 
-def ai_structure_and_translate(api_key, korean_text, format_type='table'):
-    """형식(표, 내용+그림 50:50, 내용+그림 상하 30:70)에 맞추어 1줄 요약문과 본문을 일본어로 구조화"""
+def ai_structure_and_translate(api_key, input_text, format_type='table', language='ja'):
+    """언어(일본어 디폴트, 영어, 한국어) 및 형식에 맞추어 1줄 요약문과 본문을 구조화"""
     genai.configure(api_key=api_key)
+    cfg = LANG_CONFIG.get(language, LANG_CONFIG['ja'])
 
     if format_type.startswith('content_image'):
         is30 = (format_type == 'content_image_30')
         guide = "(슬라이드 상측 30% 영역에는 가로로 배치될 핵심 요약 2~3개 섹션을 컴팩트하게 작성하고, 하측 70%는 대형 다이어그램/그림용으로 비워둡니다.)" if is30 else "(슬라이드 우측 50%는 그림/도표 삽입용으로 비워두며, 좌측 50%에 2~3개 섹션을 작성하세요.)"
 
         prompt = f"""
-당신은 일본 비즈니스 기획서 및 파워포인트 원페이지 보고서 작성 전문가입니다.
-입력된 한국어 내용을 분석하여, '단 1장의 슬라이드 핵심 내용' 형태로 구조화하여 일본어로 번역하세요.
+당신은 {cfg['expertDesc']}입니다.
+입력된 내용을 분석하여, '단 1장의 슬라이드 핵심 내용' 형태로 구조화하여 {cfg['name']}로 작성하세요.
 {guide}
 
 [필수 작성 규칙]
 1. 1행에는 슬라이드의 메인 타이틀을 '# 슬라이드 제목' 형식으로 작성하세요.
 2. 2행에는 장표 전체를 관통하는 '핵심 내용 1줄 요약문(결론/리드문)'을 반드시 '■ 요약문' 형식으로 작성하세요.
 3. 3행부터는 표(Table)를 만들지 말고, 핵심 항목(섹션)을 아래 형식으로 작성하세요:
-   ### 1. 현황 및 과제 (또는 일본어 명칭)
-   - 세부 내용 항목 1 (체언지, 간결하게)
-   - 세부 내용 항목 2 (체언지, 간결하게)
-
-   ### 2. 주요 실행 과제
+   {cfg['secExamples'][0]}
    - 세부 내용 항목 1
    - 세부 내용 항목 2
 
-   ### 3. 기대 효과 및 목표
+   {cfg['secExamples'][1]}
    - 세부 내용 항목 1
    - 세부 내용 항목 2
-4. 모든 문장은 비즈니스 일본어 '체언지(体言止め, 명사형 종결)'로 군더더기 없이 간결하게 작성하세요.
+
+   {cfg['secExamples'][2]}
+   - 세부 내용 항목 1
+   - 세부 내용 항목 2
+4. {cfg['toneRule']}
 5. 표(| ... |)는 절대로 출력하지 마세요.
 6. '**' (볼드 기호) 또는 '<br>' (HTML 태그) 같은 기호는 사용하지 마세요.
 7. 마크다운 내용 외의 다른 인사말이나 잡담은 일절 출력하지 마세요.
 
-[입력된 한국어 내용]
-{korean_text}
+[입력 내용]
+{input_text}
 """
     else:
         prompt = f"""
-당신은 일본 비즈니스 기획서 및 파워포인트 원페이지 보고서 작성 전문가입니다.
-입력된 한국어 내용을 분석하여, '단 1장의 슬라이드에 들어갈 핵심 1줄 요약문과 간결한 표(Table)' 형태로 구조화하여 일본어로 번역하세요.
+당신은 {cfg['expertDesc']}입니다.
+입력된 내용을 분석하여, '단 1장의 슬라이드에 들어갈 핵심 1줄 요약문과 간결한 표(Table)' 형태로 구조화하여 {cfg['name']}로 작성하세요.
 
 [필수 작성 규칙]
 1. 1행에는 슬라이드의 메인 타이틀을 '# 슬라이드 제목' 형식으로 작성하세요.
 2. 2행에는 장표 전체를 관통하는 '핵심 내용 1줄 요약문(결론/리드문)'을 반드시 '■ 요약문' 형식으로 작성하세요.
 3. 그 아래에 반드시 마크다운 표(Table) 형식으로 핵심 내용을 3~4개 열, 3~5개 행으로 작성하세요.
-   - 표 헤더 예시: | 項目 | 現状・課題 | 推進施策 | 期待効果・KPI |
+   - 표 헤더 예시: {cfg['headerExample']}
 4. 표 내부의 내용 항목에는 글머리 기호(▲, ▼, ●, •, -, * 등)를 절대로 붙이지 마세요!
-5. 표 내부의 모든 텍스트는 반드시 비즈니스 '체언지(体言止め, 명사형 종결)'로 작성하세요.
+5. {cfg['toneRule']}
 6. '**' (볼드 기호) 또는 '<br>' (HTML 태그) 같은 기호는 사용하지 마세요.
 7. 마크다운 내용 외의 다른 인사말이나 잡담은 일절 출력하지 마세요.
 
-[입력된 한국어 내용]
-{korean_text}
+[입력 내용]
+{input_text}
 """
 
     for model_name in ['gemini-2.5-flash', 'gemini-1.5-flash', 'gemini-1.5-pro']:
@@ -185,10 +213,10 @@ def create_base_slide(title, summary_line):
 
     return prs, slide
 
-def parse_table_content(text):
+def parse_table_content(text, language='ja'):
     """표 형식 텍스트 파싱"""
     lines = [line.strip() for line in text.strip().split('\n') if line.strip()]
-    title = "タイトル"
+    title = LANG_CONFIG.get(language, LANG_CONFIG['ja'])['defaultTitle']
     summary_line = ""
     table_rows = []
 
@@ -273,10 +301,10 @@ def build_table_presentation(title, summary_line, table_rows):
     out.seek(0)
     return out.read()
 
-def parse_content_image(text):
+def parse_content_image(text, language='ja'):
     """2, 3) 내용+그림 형식 텍스트 파싱"""
     lines = [line.strip() for line in text.strip().split('\n') if line.strip()]
-    title = "タイトル"
+    title = LANG_CONFIG.get(language, LANG_CONFIG['ja'])['defaultTitle']
     summary_line = ""
     sections = []
     current_sec = None
@@ -493,13 +521,14 @@ class PPTHandler(http.server.BaseHTTPRequestHandler):
         if self.path == '/translate':
             try:
                 api_key = data.get('api_key', '').strip()
-                korean_text = data.get('text', '').strip()
+                input_text = data.get('text', '').strip()
                 format_type = data.get('format_type', 'table')
-                if not api_key or not korean_text:
+                language = data.get('language', 'ja')
+                if not api_key or not input_text:
                     self.send_error(400, "API 키와 내용을 모두 입력해 주세요.")
                     return
 
-                res_text = ai_structure_and_translate(api_key, korean_text, format_type)
+                res_text = ai_structure_and_translate(api_key, input_text, format_type, language)
                 self.send_response(200)
                 self.send_header("Content-Type", "application/json; charset=utf-8")
                 self.end_headers()
@@ -526,19 +555,20 @@ class PPTHandler(http.server.BaseHTTPRequestHandler):
             try:
                 content_text = data.get('content', '')
                 format_type = data.get('format_type', 'table')
+                language = data.get('language', 'ja')
 
                 if format_type == 'content_image_30':
-                    title, summary_line, sections = parse_content_image(content_text)
+                    title, summary_line, sections = parse_content_image(content_text, language)
                     out_bytes = build_content_image_presentation(title, summary_line, sections, ratio='30')
-                    filename = "presentation_content_top_image_bottom_30_70.pptx"
+                    filename = f"presentation_content_top_image_bottom_30_70_{language}.pptx"
                 elif format_type in ('content_image_50', 'content_image'):
-                    title, summary_line, sections = parse_content_image(content_text)
+                    title, summary_line, sections = parse_content_image(content_text, language)
                     out_bytes = build_content_image_presentation(title, summary_line, sections, ratio='50')
-                    filename = "presentation_content_image_50_50.pptx"
+                    filename = f"presentation_content_image_50_50_{language}.pptx"
                 else:
-                    title, summary_line, table_rows = parse_table_content(content_text)
+                    title, summary_line, table_rows = parse_table_content(content_text, language)
                     out_bytes = build_table_presentation(title, summary_line, table_rows)
-                    filename = "presentation_table.pptx"
+                    filename = f"presentation_table_{language}.pptx"
 
                 self.send_response(200)
                 self.send_header("Content-Type", "application/vnd.openxmlformats-officedocument.presentationml.presentation")
@@ -563,6 +593,7 @@ if __name__ == "__main__":
     print(f"접속 주소: http://localhost:{PORT}")
     print(f"기본 양식 파일: {os.path.abspath(TEMPLATE_FILE)}")
     print("기본 폰트: Meiryo UI")
+    print("작성 언어: 일본어(디폴트), 영어, 한국어")
     print("지원 형식: 1) 표 형식, 2) 내용+그림(50:50), 3) 내용+그림(상하 30:70)")
     print("==================================================")
     with socketserver.TCPServer(("", PORT), PPTHandler) as httpd:
